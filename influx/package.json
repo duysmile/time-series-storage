@@ -1,0 +1,24 @@
+{
+  "name": "time-series-storage",
+  "version": "1.0.0",
+  "description": "Example for time series DB",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duysmile/time-series-storage.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/duysmile/time-series-storage/issues"
+  },
+  "homepage": "https://github.com/duysmile/time-series-storage#readme",
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.20.0",
+    "express": "^4.17.1"
+  }
+}
