@@ -20,7 +20,7 @@ async function main() {
     //         metaField: "metadata",
     //         granularity: "hours",
     //     },
-    //     expireAfterSeconds: 86400,
+    //     expireAfterSeconds: 86400, // time to live index in seconds
     // });
 
 
@@ -41,8 +41,54 @@ async function main() {
         res.send('OK');
     });
 
-    app.get('/messages', () => {
+    app.get('/messages', async (req, res) => {
+        const { org, engine, from, to } = req.query;
+        const botStatistic = db.collection('bot-statistic').aggregate([
+            {
+                '$match': {
+                    'metadata.org': org * 1,
+                    'metadata.engine': engine * 1,
+                    'timestamp': {
+                        $gte: from,
+                        $lte: to,
+                    },
+                },
+            },
+            {
+                '$project': {
+                    'date': {
+                        '$dateToParts': {
+                            'date': '$timestamp',
+                        },
+                    },
+                    'sessions': 1
+                },
+            }, {
+                '$group': {
+                    '_id': {
+                        'date': {
+                            'year': '$date.year',
+                            'month': '$date.month',
+                            'day': '$date.day',
+                        },
+                    },
+                    'totalSession': {
+                        '$sum': '$sessions'
+                    }
+                }
+            }, {
+                '$sort': {
+                    '_id': 1
+                },
+            },
+        ]);
 
+        const result = [];
+        await botStatistic.forEach(r => {
+            result.push(r);
+        });
+
+        res.json(result);
     });
 
     app.listen(3000, () => {
