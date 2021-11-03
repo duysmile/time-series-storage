@@ -14,6 +14,8 @@ const db = mongo.db(MONGO_DB);
 const app = express();
 
 async function main() {
+
+    // Create time series collection
     // await db.createCollection('bot-statistic', {
     //     timeseries: {
     //         timeField: "timestamp",
@@ -23,6 +25,42 @@ async function main() {
     //     expireAfterSeconds: 86400, // time to live index in seconds
     // });
 
+    // Create view
+    await db.collection("bot-statistic").aggregate([
+        {
+            '$project': {
+                'date': {
+                    '$dateToParts': {
+                        'date': '$timestamp',
+                    },
+                },
+                'metadata.org': 1,
+                'metadata.engine': 1,
+                'sessions': 1
+            },
+        }, {
+            '$group': {
+                '_id': {
+                    'date': {
+                        'year': '$date.year',
+                        'month': '$date.month',
+                        'day': '$date.day',
+                    },
+                    'org': '$metadata.org',
+                    'engine': '$metadata.engine',
+                },
+                'totalSession': {
+                    '$sum': '$sessions'
+                },
+            }
+        }, {
+            $merge: {
+                into: "daily-session",
+                whenMatched: "replace",
+                whenNotMatched: "insert",
+            },
+        },
+    ]);
 
     app.use(express.json());
 
@@ -42,16 +80,12 @@ async function main() {
     });
 
     app.get('/messages', async (req, res) => {
-        const { org, engine, from, to } = req.query;
+        const { org, engine } = req.query;
         const botStatistic = db.collection('bot-statistic').aggregate([
             {
                 '$match': {
                     'metadata.org': org * 1,
                     'metadata.engine': engine * 1,
-                    'timestamp': {
-                        $gte: from,
-                        $lte: to,
-                    },
                 },
             },
             {
@@ -82,6 +116,21 @@ async function main() {
                 },
             },
         ]);
+
+        const result = [];
+        await botStatistic.forEach(r => {
+            result.push(r);
+        });
+
+        res.json(result);
+    });
+
+    app.get('/view-messages', async (req, res) => {
+        const { org, engine } = req.query;
+        const botStatistic = db.collection('total-session').find({
+            '_id.org': org * 1,
+            '_id.engine': engine * 1,
+        });
 
         const result = [];
         await botStatistic.forEach(r => {
